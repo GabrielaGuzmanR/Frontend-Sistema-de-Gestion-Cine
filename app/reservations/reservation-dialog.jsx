@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -10,35 +10,48 @@ import { Check, Calendar, Clock, MapPin, Ticket } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-// Generate a 10x8 seat grid
-const generateSeats = () => {
-  const rows = ["A", "B", "C", "D", "E", "F", "G", "H"]
-  const seats = []
-
-  for (let i = 0; i < rows.length; i++) {
-    for (let j = 1; j <= 10; j++) {
-      seats.push({
-        id: `${rows[i]}${j}`,
-        row: rows[i],
-        number: j,
-        status: Math.random() > 0.8 ? "occupied" : "available",
-      })
-    }
-  }
-
-  return seats
-}
-
 export default function ReservationDialog({ movie, schedule, open, onOpenChange }) {
-  const [seats] = useState(generateSeats())
+  const [seats, setSeats] = useState([])
   const [selectedSeats, setSelectedSeats] = useState([])
   const [email, setEmail] = useState("")
-  const [name, setName] = useState("") // Añadimos estado para el nombre
+  const [name, setName] = useState("")
   const [currentStep, setCurrentStep] = useState("select-seats")
   const [reservationComplete, setReservationComplete] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Cargar asientos desde el backend
+  useEffect(() => {
+    if (open && schedule?.id) {
+      const fetchSeats = async () => {
+        setIsLoading(true)
+        setError(null)
+        try {
+          const response = await fetch(`https://backend-sistema-de-gestion-cine.onrender.com/functions/${schedule.id}`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          })
+          if (!response.ok) {
+            throw new Error(`Error al obtener la función: ${response.status}`)
+          }
+          const data = await response.json()
+          setSeats(data.Seats.map((seat) => ({
+            id: seat.id,
+            number: seat.number,
+            status: seat.status, // 'available' o 'reserved'
+          })))
+        } catch (err) {
+          setError(err.message)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+      fetchSeats()
+    }
+  }, [open, schedule?.id])
 
   const handleSeatClick = (seat) => {
-    if (seat.status === "occupied") return
+    if (seat.status === "reserved") return
 
     if (selectedSeats.find((s) => s.id === seat.id)) {
       setSelectedSeats(selectedSeats.filter((s) => s.id !== seat.id))
@@ -53,28 +66,75 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
     }
   }
 
-  const handleReservation = () => {
-    if (!email || !name || selectedSeats.length === 0) return // Añadimos validación para name
+  const handleReservation = async () => {
+    if (!email || !name || selectedSeats.length === 0) return
 
-    console.log("Sending reservation confirmation email to:", email, {
-      name, // Incluimos el nombre en el log
-      movie: movie.title,
-      theater: schedule.theater,
-      date: schedule.date,
-      time: schedule.time,
-      seats: selectedSeats.map((s) => s.id),
-    })
+    const reservationData = {
+      name,
+      email,
+      functionId: schedule.id.toString(),
+      seats: selectedSeats.map((seat) => seat.id),
+    }
 
-    setReservationComplete(true)
+    try {
+      setIsLoading(true)
+      const response = await fetch("https://backend-sistema-de-gestion-cine.onrender.com/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reservationData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Error al crear la reserva: ${response.status}`)
+      }
+
+      setReservationComplete(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleClose = () => {
     setSelectedSeats([])
     setEmail("")
-    setName("") // Reiniciamos el nombre
+    setName("")
     setCurrentStep("select-seats")
     setReservationComplete(false)
+    setError(null)
     onOpenChange(false)
+  }
+
+  if (isLoading && currentStep === "select-seats") {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[700px] border-none shadow-xl bg-slate-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Reservar Entradas</DialogTitle>
+            <DialogDescription className="text-base text-white">
+              Cargando asientos...
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  if (error && currentStep === "select-seats") {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[700px] border-none shadow-xl bg-slate-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Reservar Entradas</DialogTitle>
+            <DialogDescription className="text-base text-red-400">
+              {error}
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   return (
@@ -117,7 +177,7 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-white/10 rounded-sm"></div>
-                <span className="text-sm">Ocupado</span>
+                <span className="text-sm">Reservado</span>
               </div>
             </div>
 
@@ -133,16 +193,16 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
                   <button
                     key={seat.id}
                     className={`w-9 h-9 rounded-md flex items-center justify-center text-xs font-medium transition-all ${
-                      seat.status === "occupied"
+                      seat.status === "reserved"
                         ? "bg-white/10 text-white/50 cursor-not-allowed opacity-50"
                         : selectedSeats.find((s) => s.id === seat.id)
                           ? "bg-green-500 text-white shadow-md transform -translate-y-1 hover:bg-green-600"
                           : "bg-white/20 hover:bg-white/30 text-white"
                     }`}
                     onClick={() => handleSeatClick(seat)}
-                    disabled={seat.status === "occupied"}
+                    disabled={seat.status === "reserved"}
                   >
-                    {seat.id}
+                    {seat.number}
                   </button>
                 ))}
               </div>
@@ -154,7 +214,7 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
                 <div className="flex flex-wrap gap-1 mt-1">
                   {selectedSeats.map((seat) => (
                     <Badge key={seat.id} className="bg-green-500 text-white hover:bg-green-600">
-                      {seat.id}
+                      {seat.number}
                     </Badge>
                   ))}
                 </div>
@@ -204,7 +264,7 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
                       <div className="flex flex-wrap gap-1">
                         {selectedSeats.map((seat) => (
                           <Badge key={seat.id} className="bg-green-500 text-white hover:bg-green-600">
-                            {seat.id}
+                            {seat.number}
                           </Badge>
                         ))}
                       </div>
@@ -243,6 +303,7 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
                   </CardContent>
                 </Card>
 
+                {error && <p className="text-red-400 text-sm text-center">{error}</p>}
                 <div className="flex justify-between">
                   <Button
                     variant="outline"
@@ -253,10 +314,10 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
                   </Button>
                   <Button
                     onClick={handleReservation}
-                    disabled={!email || !name || selectedSeats.length === 0} // Actualizamos la validación
+                    disabled={!email || !name || selectedSeats.length === 0 || isLoading}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
-                    Confirmar Reserva
+                    {isLoading ? "Reservando..." : "Confirmar Reserva"}
                   </Button>
                 </div>
               </>
