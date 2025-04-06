@@ -33,6 +33,7 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
   const [seats] = useState(generateSeats())
   const [selectedSeats, setSelectedSeats] = useState([])
   const [email, setEmail] = useState("")
+  const [name, setName] = useState("") // Añadimos estado para el nombre
   const [currentStep, setCurrentStep] = useState("select-seats")
   const [reservationComplete, setReservationComplete] = useState(false)
 
@@ -53,9 +54,10 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
   }
 
   const handleReservation = () => {
-    if (!email || selectedSeats.length === 0) return
+    if (!email || !name || selectedSeats.length === 0) return // Añadimos validación para name
 
     console.log("Sending reservation confirmation email to:", email, {
+      name, // Incluimos el nombre en el log
       movie: movie.title,
       theater: schedule.theater,
       date: schedule.date,
@@ -69,6 +71,7 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
   const handleClose = () => {
     setSelectedSeats([])
     setEmail("")
+    setName("") // Reiniciamos el nombre
     setCurrentStep("select-seats")
     setReservationComplete(false)
     onOpenChange(false)
@@ -118,7 +121,6 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
               </div>
             </div>
 
-            {/* Indicación de la pantalla */}
             <div className="flex justify-center mb-4">
               <div className="w-full max-w-md bg-gray-700/50 border border-gray-600/50 rounded-t-md p-2 text-center text-sm font-medium text-gray-300">
                 Pantalla
@@ -208,19 +210,35 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="font-medium text-white">
-                        Correo Electrónico
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Ingrese su correo para recibir la confirmación"
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-blue-600"
-                        required
-                      />
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name" className="font-medium text-white">
+                          Nombre
+                        </Label>
+                        <Input
+                          id="name"
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Ingrese su nombre"
+                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-blue-600"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="font-medium text-white">
+                          Correo Electrónico
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Ingrese su correo para recibir la confirmación"
+                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-blue-600"
+                          required
+                        />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -235,7 +253,7 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
                   </Button>
                   <Button
                     onClick={handleReservation}
-                    disabled={!email || selectedSeats.length === 0}
+                    disabled={!email || !name || selectedSeats.length === 0} // Actualizamos la validación
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     Confirmar Reserva
@@ -250,8 +268,9 @@ export default function ReservationDialog({ movie, schedule, open, onOpenChange 
                 <h2 className="text-2xl font-bold text-white">¡Reserva Exitosa!</h2>
                 <div className="bg-white/5 p-6 rounded-lg border border-white/10 shadow-lg max-w-md w-full">
                   <p className="text-center text-white mb-4">
-                    Hemos enviado un correo de confirmación a <span className="font-medium text-white">{email}</span>{" "}
-                    con los detalles de su reserva.
+                    Hemos enviado un correo de confirmación a{" "}
+                    <span className="font-medium text-white">{name}</span> (
+                    <span className="font-medium text-white">{email}</span>) con los detalles de su reserva.
                   </p>
                   <div className="p-4 bg-blue-600/10 rounded-lg border border-white/10 mb-4">
                     <div className="flex justify-between items-center mb-2">
