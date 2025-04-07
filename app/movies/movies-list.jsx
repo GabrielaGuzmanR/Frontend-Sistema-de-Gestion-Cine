@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Clock, Film, Plus, Eye, Star } from "lucide-react"
+import { Clock, Film, Plus, Eye, Star, Clapperboard } from "lucide-react"
 import AddMovieDialog from "@/app/movies/add-movie-dialog"
 import ViewMovieDialog from "@/app/movies/view-movie-dialog"
 
@@ -35,7 +35,7 @@ export default function MoviesList() {
           title: movie.title,
           classification: movie.classification,
           duration: movie.duration,
-          category: movie.category || "Sin categoría", // Fallback si no hay categoría
+          category: movie.category || "Sin categoría",
           rating: 4.0,
         }))
         setMovies(formattedMovies)
@@ -98,48 +98,61 @@ export default function MoviesList() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {movies.map((movie) => (
-          <div
-            key={movie.id}
-            className="group flex flex-col bg-gray-900/70 backdrop-blur-md border border-gray-800/50 rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:bg-gray-900/90 transition-all duration-300"
+      {movies.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 bg-gray-900/50 rounded-xl border border-gray-800/50">
+          <Clapperboard className="h-12 w-12 text-gray-400 mb-4" />
+          <p className="text-gray-300 text-lg mb-4">No hay películas disponibles</p>
+          <Button
+            onClick={() => setIsAddMovieOpen(true)}
+            className="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-700 text-white"
           >
-            <div className="p-4 flex-grow flex flex-col">
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="text-lg font-semibold text-white group-hover:text-blue-200 transition-colors duration-200">
-                  {movie.title}
-                </h3>
-                <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-2 py-1 rounded-full shadow-inner">
-                  <Star className="h-3.5 w-3.5 fill-current" />
-                  <span className="font-medium text-sm">{movie.rating}</span>
+            <Plus className="mr-2 h-4 w-4" /> Añadir Película
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {movies.map((movie) => (
+            <div
+              key={movie.id}
+              className="group flex flex-col bg-gray-900/70 backdrop-blur-md border border-gray-800/50 rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:bg-gray-900/90 transition-all duration-300"
+            >
+              <div className="p-4 flex-grow flex flex-col">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="text-lg font-semibold text-white group-hover:text-blue-200 transition-colors duration-200">
+                    {movie.title}
+                  </h3>
+                  <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-2 py-1 rounded-full shadow-inner">
+                    <Star className="h-3.5 w-3.5 fill-current" />
+                    <span className="font-medium text-sm">{movie.rating}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge className="bg-blue-600/20 text-blue-100 border border-blue-500/30 hover:bg-blue-600/30 text-xs">
+                    {movie.classification}
+                  </Badge>
+                  <Badge className="bg-gray-700/50 text-gray-200 border border-gray-600/50 hover:bg-gray-700/70 text-xs flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {movie.duration} min
+                  </Badge>
+                  <Badge className="bg-indigo-600/20 text-indigo-100 border border-indigo-500/30 hover:bg-indigo-600/30 text-xs flex items-center gap-1">
+                    <Film className="h-3 w-3" /> {movie.category || "Sin categoría"}
+                  </Badge>
+                </div>
+
+                <div className="mt-auto pt-3 border-t border-gray-800/50">
+                  <Button
+                    variant="default"
+                    className="w-full bg-gradient-to-r from-blue-800 to-indigo-600 hover:from-blue-900 hover:to-indigo-900 text-white shadow-md shadow-blue-800/20 group-hover:shadow-blue-600/30 transition-all duration-300"
+                    onClick={() => handleViewMovie(movie)}
+                  >
+                    <Eye className="mr-2 h-4 w-4" /> Ver Detalles
+                  </Button>
                 </div>
               </div>
-
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge className="bg-blue-600/20 text-blue-100 border border-blue-500/30 hover:bg-blue-600/30 text-xs">
-                  {movie.classification}
-                </Badge>
-                <Badge className="bg-gray-700/50 text-gray-200 border border-gray-600/50 hover:bg-gray-700/70 text-xs flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> {movie.duration} min
-                </Badge>
-                <Badge className="bg-indigo-600/20 text-indigo-100 border border-indigo-500/30 hover:bg-indigo-600/30 text-xs flex items-center gap-1">
-                  <Film className="h-3 w-3" /> {movie.category || "Sin categoría"}
-                </Badge>
-              </div>
-
-              <div className="mt-auto pt-3 border-t border-gray-800/50">
-                <Button
-                  variant="default"
-                  className="w-full bg-gradient-to-r from-blue-800 to-indigo-600 hover:from-blue-900 hover:to-indigo-900 text-white shadow-md shadow-blue-800/20 group-hover:shadow-blue-600/30 transition-all duration-300"
-                  onClick={() => handleViewMovie(movie)}
-                >
-                  <Eye className="mr-2 h-4 w-4" /> Ver Detalles
-                </Button>
-              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <AddMovieDialog open={isAddMovieOpen} onOpenChange={setIsAddMovieOpen} onAddMovie={handleAddMovie} />
 

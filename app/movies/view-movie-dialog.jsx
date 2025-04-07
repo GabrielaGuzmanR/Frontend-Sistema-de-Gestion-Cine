@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Clock, Film, Calendar, Star } from "lucide-react"
+import { Clock, Film, Calendar, Star, Clapperboard } from "lucide-react"
 import ReservationDialog from "@/app/reservations/reservation-dialog"
 
 export default function ViewMovieDialog({ movie, open, onOpenChange }) {
@@ -31,11 +31,15 @@ export default function ViewMovieDialog({ movie, open, onOpenChange }) {
           },
         })
 
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
+        let data = [];
+        if (response.status === 404) {
+          data = []; // Tratar 404 como lista vacía
+        } else if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        } else {
+          data = await response.json();
         }
 
-        const data = await response.json()
         // Filter functions by movieId and map to the expected structure
         const movieFunctions = data
           .filter((func) => func.movieId === movie.id)
@@ -100,7 +104,7 @@ export default function ViewMovieDialog({ movie, open, onOpenChange }) {
                   <Clock className="h-3 w-3" /> {movie.duration} min
                 </Badge>
                 <Badge className="bg-primary/20 text-white hover:bg-primary/30 flex items-center gap-1">
-                  <Film className="h-3 w-3" /> {movie.genre}
+                  <Film className="h-3 w-3" /> {movie.category || "Sin categoría"}
                 </Badge>
               </div>
             </div>
@@ -113,7 +117,18 @@ export default function ViewMovieDialog({ movie, open, onOpenChange }) {
                 ) : error ? (
                   <p className="text-red-400 text-sm">Error: {error}</p>
                 ) : schedules.length === 0 ? (
-                  <p className="text-white text-sm">No hay funciones disponibles para esta película.</p>
+                  <div className="relative flex flex-col items-center justify-center py-8 bg-gradient-to-b from-gray-900/50 to-gray-800/50 rounded-lg border border-gray-800/50 shadow-md">
+                    {/* Fondo decorativo */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 rounded-lg blur-3xl -z-10 opacity-50" />
+
+                    {/* Ícono grande */}
+                    <Clapperboard className="h-16 w-16 text-blue-400 mb-4 animate-pulse" />
+
+                    {/* Título */}
+                    <h4 className="text-xl font-bold text-white mb-2 bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                      ¡No hay horarios disponibles!
+                    </h4>
+                  </div>
                 ) : (
                   <Tabs defaultValue={dates[0]} className="w-full">
                     <TabsList className="grid grid-cols-3 mb-4 bg-white/10">
